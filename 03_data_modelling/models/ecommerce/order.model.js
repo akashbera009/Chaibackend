@@ -1,12 +1,11 @@
-import mongoose, { MongooseError } from "mongoose"
-import { Product } from "./product.model"
+import mongoose from "mongoose"
 
 const orderItemSchema= new mongoose.Schema({
   productId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"Product"
   },
-  quantiy:{
+  quantitiy:{
     type:Number,
     required:true
   }

@@ -50,7 +50,7 @@ const userSchema = new Schema({
 // bcrypt hash and compare method 
 userSchema.pre("save", async function(next){            // pre hook (just after saving), ::: save , update, validate 
     if (!this.isModified("password")) return next()         //  if password field is modified  then change else no  
-    this.password  = bcrypt.hash(this.password, 10 )                // encryption
+    this.password  =await bcrypt.hash(this.password, 10 )                // encryption
     next()  
 })    
 

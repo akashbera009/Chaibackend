@@ -23,4 +23,14 @@ app.use(express.static("public"))   // for assts like favison, images etc || pub
 app.use(cookieParser())
 
 
+
+// routes import 
+import userRouter from './routes/User.routes.js'
+
+// routes declaration 
+app.use("/api/v1/users", userRouter)    // we could do app.get , but we would use middleware, so why app.use 
+
+// here at /api/v1/user the userRouter method will be called the next router will be called and the mothod will be called accordingly , like '/register' route  or '/login'
+// https://localhost:8000/users/register ( upto users same then register is auto added )
+
 export {app}

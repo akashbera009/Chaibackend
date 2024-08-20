@@ -112,9 +112,47 @@ as a utils
         fs.unlinkSync(localFilePath)   /// remove the locally saved temporary file as the upload operation got failed 
         return null;
     }
-}
+}l
 
 ## fs (file system management )
 
     read, write , remove the file 
     unlinked : if file is successfully uploaded , it can be unliked 
+
+
+----part 11  controller and routes 
+
+ ## postman application 
+    asyncHandler->user.controller->User.route->+ app.js->index.js 
+
+     here at /api/v1/user the userRouter method will be called the next router will be called and the mothod will be called accordingly , like '/register' route  or '/login'
+
+
+----part 12  Logic Building 
+
+      /*[ //   steps ----
+        1.   get user details form frontened
+        2.   validation  -- not empty 
+        3.   check user already exist (using email)
+        4.   check the images files 
+        5.  upload to cloudinary , avatar 
+        6.  create user object -- create entry in DB
+        7.  remove password and refresh token from response 
+        8.  check for user creation 
+        9.  return res 
+    ] */
+
+    
+router.route("/register").post(         // register 
+    upload.fields([    // upload middleware
+        {
+            name:"avatar",
+            maxCount:1
+        },
+        {
+            name:"coverimage",
+            maxCount:1
+        }
+    ]),
+    registerUser
+)  

@@ -156,3 +156,16 @@ router.route("/register").post(         // register
     ]),
     registerUser
 )  
+
+
+--- part 13 postman 
+    POSTMAN
+        POST request to localhost://5000/api/v1/users/register 
+        Environment Variables ->...
+    MongoDB 
+        Database->AKASH BERA'S ORG -2024-08-16-> YOUTUBE ->
+ file format from backend :
+   req.body , 
+   req.files coverimage[{filed:"edsx" ,path:..}]
+
+  postman  

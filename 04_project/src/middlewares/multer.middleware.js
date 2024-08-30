@@ -1,5 +1,6 @@
 import multer from "multer"
 
+//  while saving/trasfering form data take images also 
 const storage = multer.diskStorage({    // disckstorage ,, not using memory storage as may load on memory  
     destination: function (req, file, cb) {    
       cb(null, "./public/temp")

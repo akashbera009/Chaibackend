@@ -1,27 +1,35 @@
 import { ApiError } from "../utils/apierror.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { User} from "../models/user.model.js"
+import {User} from "../models/user.model.js";
 import {uploadOnCloudinary } from "../utils/cloudinary.js"
+import jwt from "jsonwebtoken"
 import { application } from "express";
 
 
-const generateAccessAndRefreshTokens = async (userId) {
+const generateAccessAndRefreshTokens = async (userId) => {
     try{
-        const user= await User.findById(userId)
-        const accessToken = user.generateAccessToken();
-        const refreshToken= user.generateRefreshToken();
+        const user= await User.findById(userId); 
 
-        user.refreshToken = refreshToken   // adding value of the refresh token in the user object and ..
-        await user.save ({validateBeforeSave:false})   //  saving to Database ||save is a MongoDB method 
+        const accessToken = user.generateAccessToken();  
+        const refreshToken= user.generateRefreshToken();
+      
+    
+        user.refreshToken = refreshToken;   // adding value of the refresh token in the user object and ..
+
+        await user.save({validateBeforeSave:false})   //  saving to Database ||save is a MongoDB method 
         /*** whenever we want save the refresh token , there must be the password , but here password is not passed 
         that's why we remove the validation by using validateBeforeSave */
         return {accessToken, refreshToken}
     }
     catch(err){
-        throw new ApiError(500 ,"Somethiing went Wrong While generating While generatiing refresh token ")
+        console.error('Error in generateAccessAndRefreshTokens:', err); // Log the actual error
+        throw new ApiError(500 ,"Somethiing went Wrong While generating refresh token ")
     }
 }
+
+
+
 
 //              Register User
 const registerUser  = asyncHandler ( async (req, res )=>{
@@ -117,11 +125,13 @@ const loginUser =  asyncHandler(async (req,res)=>{
         6.Give to user through cookies  
     */
 
-    // 1. ake Input form req.body
+    // 1. ask Input form req.body
     const {email,username,password} = req.body 
+    console.log(email);
+    
 
      // 2.Check if input is right ,[ username || email] 
-    if(!(username || email)){
+    if(!username && !email){
         throw new ApiError(400, "Email or Username is not given ")
     }
 
@@ -140,10 +150,11 @@ const loginUser =  asyncHandler(async (req,res)=>{
     //  5.Generate User refresh token & AcessToken 
      /*  in the above we have created a method generateAccessAndReferenceTokens which will generate the refresh & Access token based on the userId */
      const {accessToken, refreshToken}= await generateAccessAndRefreshTokens(user._id);
-
+    console.log(refreshToken,accessToken);
+    
     //  6.Give to user through cookies  
     const loggedInUser = await User.findById(user._id).   // sending the user object to the frontend 
-    select("-password refreshToken")
+    select({ password: 0, refreshToken: 0 })
 
     const options={   // cookies
         httpOnly :true, //these two properties do not allow to modify from the frontened ,but only from the Server  
@@ -165,19 +176,21 @@ const loginUser =  asyncHandler(async (req,res)=>{
 })
 
 //          log out 
+
+// the problem is the user wont type password to verify him as a valid user , so why we take acccessToken to verify
 const logOutUser = asyncHandler(async(req,res)=>{
     //clear cookies 
   await User.findByIdAndUpdate(          // FIND AND UPDATE REFRESH TOKEN // delete referesh token 
-        req.User._id,
+        req.user._id,
         {
             $set:{refreshToken: undefined}     // MONGODB OPERATOR 
         },
         {
-            new: true
+            new: true// return  respone will be updated with new value 
         }
     )
     const options= {
-        httpOnly:true;
+        httpOnly:true,
         secure:true
     }
     return res      // clear cookie 
@@ -186,8 +199,50 @@ const logOutUser = asyncHandler(async(req,res)=>{
     .clearCookie("refreshToken",options)
     .json(new ApiResponse(200 , {}, "User Logges Out ."))
 })
+
+
+//refreshtoken verification and sending to user 
+// add refersh token end point      
+const refreshAccessToken = asyncHandler(async(req, res)=>{
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken 
+    if(!incomingRefreshToken){
+        throw new ApiError(401, "Unauthorised requiest")
+    }
+   try {
+     const decodedToken= jwt.verify(incomingRefreshToken, porcess.env.REFRESH_TOKEN_SECRET)  // verify by the JWT 
+     const user = await User.findById(decodedToken?._id)  // fin d the user by it's _id which was encoded in Generate AccessToken method 
+     if(!user){
+         throw new ApiError(401, "Invalid refresh Token ")
+     }
+     //  match incomingAccess Token with Existing Access Token   
+     if(incomingRefreshToken !== user.refreshToken){
+         throw new Error(401 ,"refresh token is used or expired  ");   
+     }
+     // if matches generate new 
+     const options=  {
+         httpOnly:true,
+         secure: true
+     }
+    const {accessToken, newRefreshToken}= await generateAccessAndRefreshTokens(user._id , options)
+ 
+     return res
+     .status(200)
+     .cookie("accessToken",accessToken,options)
+     .cookie("refreshToken",newRefreshToken, options)
+     .json(
+         new ApiResponse(
+             200,
+             {accessToken, newRefreshToken},
+             "Access Token refreshed Successfully "
+         )
+     )
+   } catch (error) {
+        throw new ApiError(401,error.message  || "Invalid Refreesh token ");    
+   }
+})
 export {
     registerUser,
     loginUser,
-    logOutUser
+    logOutUser,
+    refreshAccessToken
 }

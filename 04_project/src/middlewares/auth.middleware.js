@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken"
 // the problem is the user wont type password to verify him as a valid user , so why we take acccessToken to verify
 export const verifyJWT = asyncHandler( async (req,res,next)=>{
 // got access from the  [.cookie("accessToken",accessToken,options)] in user controller.js    
-try {
+    try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ",""); // header for android cookies 
         if(!token ){
             throw new ApiError(401,"Unauthorized request")
